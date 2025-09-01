@@ -11,3 +11,5 @@ pip install -r requirements.txt
 pip install python-dotenv
 pip install huggingface_hub
 pip install transformers
+pip install evaluate
+pip install torch
