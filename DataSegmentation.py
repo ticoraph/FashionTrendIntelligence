@@ -40,44 +40,12 @@ def detect_content_type(data):
     except Exception:
         return None
 
-# Function to evaluate metrics
-def compute_iou_dice(pred, target, num_classes):
-    """
-    Calcule IoU et Dice Score par classe et en moyenne.
-    pred : masque prédit (H, W)
-    target : masque vérité terrain (H, W)
-    num_classes : nombre total de classes
-    """
-    ious, dices = [], []
-    for cls in range(num_classes):
-        pred_inds = (pred == cls)
-        target_inds = (target == cls)
-
-        intersection = (pred_inds & target_inds).sum().item()
-        pred_sum = pred_inds.sum().item()
-        target_sum = target_inds.sum().item()
-        union = pred_sum + target_sum - intersection
-
-        # IoU
-        iou = intersection / union if union > 0 else float("nan")
-        ious.append(iou)
-
-        # Dice
-        dice = (2 * intersection) / (pred_sum + target_sum) if (pred_sum + target_sum) > 0 else float("nan")
-        dices.append(dice)
-
-    # Moyennes (en ignorant les NaN)
-    mean_iou = torch.tensor([x for x in ious if not torch.isnan(torch.tensor(x))]).mean().item()
-    mean_dice = torch.tensor([x for x in dices if not torch.isnan(torch.tensor(x))]).mean().item()
-
-    return ious, dices, mean_iou, mean_dice
 
 # Function to request huggingface
-def query_huggingface(model_name, image_path, api_token,content_type):
+def query_huggingface(model_name, image_path, api_token):
     API_URL = f"https://api-inference.huggingface.co/models/{model_name}"
     headers = {
         "Authorization" : f"Bearer {api_token}"
-        #"Content-Type": f"{content_type}"
     }
     base64_image = encode_image_to_base64(image_path)
     payload = {"inputs": base64_image}
@@ -183,33 +151,25 @@ def create_masks(results, width, height):
     return combined_mask
 
 
-# Utilisation
+####################################################################
+# Data Processing
+####################################################################
+
 image = "IMG/image_0.png"
-content_type = detect_content_type(image)
 print(image)
-print(api_token)
-print(content_type)
-
-result = query_huggingface("sayeed99/segformer_b3_clothes", image, api_token, content_type)
-print(result)
-
 image_dimensions = get_image_dimensions(image)
 print(image_dimensions)
+content_type = detect_content_type(image)
+print(content_type)
+
+# Start API request
+result = query_huggingface("sayeed99/segformer_b3_clothes", image, api_token)
+print(result)
 
 combined_mask = create_masks(result, image_dimensions[0],image_dimensions[1])
 print(combined_mask)
 
-# --- Exemple d’utilisation ---
-# Simule une sortie prédite et un masque vérité terrain avec 3 classes
-pred = torch.randint(0, 3, (256, 256))
-target = torch.randint(0, 3, (256, 256))
 
-ious, dices, mean_iou, mean_dice = compute_iou_dice(pred, target, num_classes=3)
-
-print("IoU par classe:", ious)
-print("Mean IoU:", mean_iou)
-print("Dice par classe:", dices)
-print("Mean Dice:", mean_dice)
 
 # 'error': 'Incorrect image source. Must be a valid URL starting with `http://` or `https://`, a valid path to an image file, or a base64 encoded string.
 
