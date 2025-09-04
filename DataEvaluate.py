@@ -1,88 +1,114 @@
 import glob
 import os
 import numpy as np
-import torch
+import pandas as pd
 from PIL import Image
+from matplotlib import pyplot as plt
+import seaborn as sns
 
-target_path = "IMG/"
+true_path = "IMG/"
 pred_path = "IMGOverlay/"
 
-# Function to evaluate metrics
-def compute_iou_dice(pred, target, num_classes):
-    """
-    Calcule IoU, Dice Score et Accuracy par classe et en moyenne.
-    pred : masque prédit (H, W)
-    target : masque vérité terrain (H, W)
-    num_classes : nombre total de classes
-    """
-    ious, dices, accuracies = [], [], []
+# ------------------------
+# 1. Fonctions métriques
+# ------------------------
+def pixel_accuracy(y_true, y_pred):
+    return np.sum(y_true == y_pred) / y_true.size
 
-    # Calcul de l'accuracy globale (pixel-wise)
-    total_pixels = pred.numel()
-    correct_pixels = (pred == target).sum().item()
-    global_accuracy = correct_pixels / total_pixels
+def iou_score(y_true, y_pred):
+    intersection = np.logical_and(y_true, y_pred).sum()
+    union = np.logical_or(y_true, y_pred).sum()
+    return intersection / union if union != 0 else 1.0
 
-    for cls in range(num_classes):
-        pred_inds = (pred == cls)
-        target_inds = (target == cls)
+def dice_score(y_true, y_pred):
+    intersection = np.logical_and(y_true, y_pred).sum()
+    return (2. * intersection) / (y_true.sum() + y_pred.sum()) if (y_true.sum() + y_pred.sum()) != 0 else 1.0
 
-        intersection = (pred_inds & target_inds).sum().item()
-        pred_sum = pred_inds.sum().item()
-        target_sum = target_inds.sum().item()
-        union = pred_sum + target_sum - intersection
+# ------------------------
+# 1. Fonctions métriques
+# ------------------------
 
-        # IoU
-        iou = intersection / union if union > 0 else float("nan")
-        ious.append(iou)
-
-        # Dice
-        dice = (2 * intersection) / (pred_sum + target_sum) if (pred_sum + target_sum) > 0 else float("nan")
-        dices.append(dice)
-
-        # Accuracy par classe (True Positive Rate / Recall / Sensitivity)
-        accuracy = intersection / target_sum if target_sum > 0 else float("nan")
-        accuracies.append(accuracy)
-
-    # Moyennes (en ignorant les NaN)
-    mean_iou = torch.tensor([x for x in ious if not torch.isnan(torch.tensor(x))]).mean().item()
-    mean_dice = torch.tensor([x for x in dices if not torch.isnan(torch.tensor(x))]).mean().item()
-    mean_accuracy = torch.tensor([x for x in accuracies if not torch.isnan(torch.tensor(x))]).mean().item()
-
-    return ious, dices, accuracies, mean_iou, mean_dice, mean_accuracy, global_accuracy
-
-
-# --- Exemple d’utilisation ---
-# Simule une sortie prédite et un masque vérité terrain avec 3 classes
-# Charger les images
-#list_pred_img = sorted(os.listdir(pred_path))
 list_pred_img = sorted(glob.glob(pred_path + '*.png'))
-print(list_pred_img)
-#list_target_img = sorted(os.listdir(target_path))
-list_target_img = sorted(glob.glob(target_path + '/*.png'))
-print(list_target_img)
+#print(list_pred_img)
 
-for pred_img,target_img in zip(list_pred_img, list_target_img):
-    print(pred_img)
-    print(target_img)
-    pred_img = Image.open(os.path.join(pred_img))
-    target_img = Image.open(os.path.join(target_img))
+list_true_img = sorted(glob.glob(true_path + '/*.png'))
+#print(list_true_img)
 
-    # Convertir en tenseurs
-    pred = torch.tensor(np.array(pred_img), dtype=torch.long)
-    target = torch.tensor(np.array(target_img), dtype=torch.long)
+results = []
 
-    ious = compute_iou_dice(pred, target, num_classes=18)
-    mean_iou = compute_iou_dice(pred, target, num_classes=18)
-    dices = compute_iou_dice(pred, target, num_classes=18)
-    mean_dice = compute_iou_dice(pred, target, num_classes=18)
-    accuracies = compute_iou_dice(pred, target, num_classes=18)
-    mean_accuracy = compute_iou_dice(pred, target, num_classes=18)
-    global_accuracy = compute_iou_dice(pred, target, num_classes=18)
+for pred_img,true_img in zip(list_pred_img, list_true_img):
+    #print(pred_img)
+    #print(true_img)
 
-    #print("IoU par classe:", ious)
-    print("Mean IoU:", mean_iou)
-    #print("Dice par classe:", dices)
-    print("Mean Dice:", mean_dice)
-    #print("Accuracies:", accuracies)
-    print("Mean Accuracy:", mean_accuracy)
-    #print("Global Accuracy:", global_accuracy)
+    true_img_open = Image.open(os.path.join(true_img))
+    pred_img_open = Image.open(os.path.join(pred_img))
+
+    true_img_convert = np.array(true_img_open.convert("L"))  #  niveaux de gris
+    true_img_convert = (true_img_convert > 127).astype(np.uint8)  # binarisation 0/1
+
+    pred_img_convert = np.array(pred_img_open.convert("L"))  #  niveaux de gris
+    pred_img_convert = (pred_img_convert > 127).astype(np.uint8)  # binarisation 0/1
+
+    #print(f"true_img_convert:{true_img_convert}")
+    #print(f"pred_img_convert:{pred_img_convert}")
+
+    # Calcul métriques
+    acc = pixel_accuracy(true_img_convert, pred_img_convert)
+    iou = iou_score(true_img_convert, pred_img_convert)
+    dice = dice_score(true_img_convert, pred_img_convert)
+
+    results.append((true_img, acc, iou, dice))
+    #print(f"Accuracy: {acc:.4f}, IoU: {iou:.4f}, Dice: {dice:.4f}")
+
+# ------------------------
+# 4. Moyennes globales
+# ------------------------
+
+df = pd.DataFrame(results, columns=["filename","accuracy","iou","dice"])
+#print(df)
+
+if results:
+    acc_mean = np.mean([r[1] for r in results])
+    iou_mean = np.mean([r[2] for r in results])
+    dice_mean = np.mean([r[3] for r in results])
+
+    print("\n📊 Résultats globaux :")
+    print(f"Accuracy moyenne: {acc_mean*100:.2f}%")
+    # Cela veut dire que 77% des pixels de tes images sont correctement classés.
+    print(f"IoU moyenne: {iou_mean*100:.2f}%")
+    # en moyenne, la zone prédite et la vérité terrain se chevauchent à 61%
+    print(f"Dice moyenne: {dice_mean*100:.2f}%")
+    # le chevauchement pondéré est de 74%
+else:
+    print("⚠️ Aucun résultat calculé.")
+
+print(df.sort_values("accuracy", ascending=True)[:3])
+print(df.sort_values("iou", ascending=True)[:3])
+
+print(df.sort_values("accuracy", ascending=True)[-3:])
+print(df.sort_values("iou", ascending=True)[-3:])
+
+# ------------------------
+# 4. Moyennes globales
+# ------------------------
+
+
+x = np.arange(len(df['filename']))
+plt.scatter(x, df['accuracy'], color="blue", label="Accuracy", alpha=0.7)
+plt.scatter(x, df['iou'], color="red", label="iou", alpha=0.7)
+plt.xlabel("images")
+plt.ylabel("score")
+# Accuracy vs IoU : intéressant car l’accuracy peut être trompeuse si beaucoup de fond, tu verras si c’est bien corrélé ou pas.
+plt.show()
+
+
+plt.scatter(df['iou'], df['dice'], color="magenta",  alpha=0.7)
+plt.xlabel("iou")
+plt.ylabel("dice")
+plt.title("Corrélation iou vs dice")
+plt.show()
+
+sns.boxplot(data=df[["accuracy","iou","dice"]])
+plt.title("Distribution des scores")
+plt.show()
+

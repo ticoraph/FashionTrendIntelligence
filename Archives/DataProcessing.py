@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 # Chemin vers le dossier contenant les images
-folder_path = "IMG/"
+folder_path = "../IMG/"
 
 # Lister tous les fichiers du dossier
 files = os.listdir(folder_path)
