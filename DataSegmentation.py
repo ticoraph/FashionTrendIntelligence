@@ -108,7 +108,8 @@ def detect_content_type(image_path_full):
                 'ICO': 'image/x-icon',
             }
             return format_to_mime.get(img.format, f'image/{img.format.lower()}')
-    except Exception:
+    except Exception as e:
+        print(f"Error {e}")
         return None
 
 
@@ -150,31 +151,29 @@ def create_masks(results, width, height):
 
 
 # %%
-def query_huggingface(model_name, image_path, api_token):
+def query_huggingface(model_name, image_path, token):
     """
     Request API Hugging Face.
     Args:
-        model_name: Nom du Modele
-        image_path: Image
-        api_token: Token
+        :param model_name:
+        :param image_path:
+        :param token:
     Returns:
-        response.json: Reponse Requete API
     """
     api_url = f"https://api-inference.huggingface.co/models/{model_name}"
     headers = {
-        "Authorization": f"Bearer {api_token}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
     base64_image = encode_image_to_base64(image_path)
     payload = {"inputs": base64_image}
 
     try:
-
         session = requests.Session()
         retries = Retry(total=3)
         session.mount('https://', HTTPAdapter(max_retries=retries))
 
-        #response = requests.post(api_url, headers=headers, json=payload, timeout=5)
+        # response = requests.post(api_url, headers=headers, json=payload, timeout=5)
         response = session.post(api_url, headers=headers, json=payload)
         print(response.json())
 
@@ -201,7 +200,7 @@ def segment_images_batch(list_of_image_paths):
     Returns:
         list: Liste des masques de segmentation (tableaux NumPy).
               Contient None si une image n'a pas pu être traitée.
-    """
+    # """
     batch_segmentations = []
 
     for image_path in tqdm(list_of_image_paths,
@@ -214,11 +213,11 @@ def segment_images_batch(list_of_image_paths):
 
             # Image Dimensions
             image_dimensions = get_image_dimensions(image_path_full)
-            #print(f"Dimensions: {image_dimensions}")
+            # print(f"Dimensions: {image_dimensions}")
 
             # Content Type
             content_type = detect_content_type(image_path_full)
-            #print(f"Content Type: {content_type}")
+            # print(f"Content Type: {content_type}")
 
             if content_type is "image/png" and image_dimensions == (400, 600):
 
