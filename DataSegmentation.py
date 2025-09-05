@@ -41,7 +41,6 @@ CLASS_MAPPING = {
     "Scarf": 17
 }
 
-
 # %%
 def encode_image_to_base64(image_path):
     # Open the image file in binary read mode
@@ -50,7 +49,6 @@ def encode_image_to_base64(image_path):
         encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
         # Return the base64 string with proper data URI format for JPEG images
         return f"data:image/png;base64,{encoded_string}"
-
 
 # %%
 def decode_base64_mask(base64_string, width, height):
@@ -78,7 +76,6 @@ def decode_base64_mask(base64_string, width, height):
     # Convert back to NumPy array and return
     return np.array(mask_image)
 
-
 # %%
 def get_image_dimensions(image_path):
     """
@@ -92,7 +89,6 @@ def get_image_dimensions(image_path):
     original_image = Image.open(image_path)
     # Return the image dimensions as a tuple (width, height)
     return original_image.size
-
 
 # %%
 def detect_content_type(image_path_full):
@@ -111,7 +107,6 @@ def detect_content_type(image_path_full):
     except Exception as e:
         print(f"Error {e}")
         return None
-
 
 # %%
 def create_masks(results, width, height):
@@ -149,7 +144,6 @@ def create_masks(results, width, height):
 
     return combined_mask
 
-
 # %%
 def query_huggingface(model_name, image_path, token):
     """
@@ -169,12 +163,12 @@ def query_huggingface(model_name, image_path, token):
     payload = {"inputs": base64_image}
 
     try:
-        session = requests.Session()
-        retries = Retry(total=3)
-        session.mount('https://', HTTPAdapter(max_retries=retries))
+        #session = requests.Session()
+        #retries = Retry(total=3)
+        #session.mount('https://', HTTPAdapter(max_retries=retries))
 
-        # response = requests.post(api_url, headers=headers, json=payload, timeout=5)
-        response = session.post(api_url, headers=headers, json=payload)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=5)
+        #response = session.post(api_url, headers=headers, json=payload)
         print(response.json())
 
         response.raise_for_status()
@@ -190,7 +184,6 @@ def query_huggingface(model_name, image_path, token):
         print(f"Error during API request {image_path}: {e}")
         return None
 
-
 # %%
 def segment_images_batch(list_of_image_paths):
     """
@@ -203,23 +196,25 @@ def segment_images_batch(list_of_image_paths):
     # """
     batch_segmentations = []
 
+    start_time = time.time()
+
     for image_path in tqdm(list_of_image_paths,
                            desc="Segmentation",
                            unit="image",
                            colour="green"):
         try:
             image_path_full = image_dir + image_path
-            # print(f"Traitement: {image_path}")
+            print(f"Traitement: {image_path}")
 
             # Image Dimensions
             image_dimensions = get_image_dimensions(image_path_full)
-            # print(f"Dimensions: {image_dimensions}")
+            print(f"Dimensions: {image_dimensions}")
 
             # Content Type
             content_type = detect_content_type(image_path_full)
-            # print(f"Content Type: {content_type}")
+            print(f"Content Type: {content_type}")
 
-            if content_type is "image/png" and image_dimensions == (400, 600):
+            if content_type == "image/png" and image_dimensions == (400, 600):
 
                 # API request
                 # mattmdjaga/segformer_b2_clothes
@@ -236,8 +231,9 @@ def segment_images_batch(list_of_image_paths):
 
             batch_segmentations.append(None)
 
-    return batch_segmentations
+    print("--- %s seconds ---" % (time.time() - start_time))
 
+    return batch_segmentations
 
 # %%
 def display_segmented_images_batch(list_of_image_paths, segmentation_masks):
