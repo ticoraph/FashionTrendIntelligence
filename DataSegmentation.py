@@ -163,13 +163,9 @@ def query_huggingface(model_name, image_path, token):
     payload = {"inputs": base64_image}
 
     try:
-        #session = requests.Session()
-        #retries = Retry(total=3)
-        #session.mount('https://', HTTPAdapter(max_retries=retries))
 
         response = requests.post(api_url, headers=headers, json=payload, timeout=5)
-        #response = session.post(api_url, headers=headers, json=payload)
-        print(response.json())
+        #print(response.json())
 
         response.raise_for_status()
         # between 200–299 (successful responses), the method does nothing.
