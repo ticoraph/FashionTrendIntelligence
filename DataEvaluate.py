@@ -9,24 +9,20 @@ import seaborn as sns
 true_path = "IMG/"
 pred_path = "IMGOverlay/"
 
-
 # ------------------------
 # 1. Fonctions métriques
 # ------------------------
 def pixel_accuracy(y_true, y_pred):
     return np.sum(y_true == y_pred) / y_true.size
 
-
 def iou_score(y_true, y_pred):
     intersection = np.logical_and(y_true, y_pred).sum()
     union = np.logical_or(y_true, y_pred).sum()
     return intersection / union if union != 0 else 1.0
 
-
 def dice_score(y_true, y_pred):
     intersection = np.logical_and(y_true, y_pred).sum()
     return (2. * intersection) / (y_true.sum() + y_pred.sum()) if (y_true.sum() + y_pred.sum()) != 0 else 1.0
-
 
 # ------------------------
 # 1. Fonctions métriques
@@ -93,9 +89,9 @@ print(df.sort_values("accuracy", ascending=True)[-3:])
 print(df.sort_values("iou", ascending=True)[-3:])
 
 # ------------------------
-# 4. Moyennes globales
+# 4. GRAPHS
 # ------------------------
-
+'''
 x = np.arange(len(df['filename']))
 plt.scatter(x, df['accuracy'], color="blue", label="Accuracy", alpha=0.7)
 plt.scatter(x, df['iou'], color="red", label="iou", alpha=0.7)
@@ -113,3 +109,4 @@ plt.show()
 sns.boxplot(data=df[["accuracy", "iou", "dice"]])
 plt.title("Distribution des scores")
 plt.show()
+'''
