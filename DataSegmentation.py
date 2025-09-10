@@ -13,33 +13,14 @@ import aiohttp
 import asyncio
 import time
 from urllib3 import Retry
+import cv2
 
 # %%
 load_dotenv()
 api_token = os.getenv('FASHION_TREND_INTELLIGENCE_TOKEN_READ')
 image_dir = "IMG/"
 list_of_image_paths = os.listdir(image_dir)
-# %%
-CLASS_MAPPING = {
-    "Background": 0,
-    "Hat": 1,
-    "Hair": 2,
-    "Sunglasses": 3,
-    "Upper-clothes": 4,
-    "Skirt": 5,
-    "Pants": 6,
-    "Dress": 7,
-    "Belt": 8,
-    "Left-shoe": 9,
-    "Right-shoe": 10,
-    "Face": 11,
-    "Left-leg": 12,
-    "Right-leg": 13,
-    "Left-arm": 14,
-    "Right-arm": 15,
-    "Bag": 16,
-    "Scarf": 17
-}
+
 
 # %%
 def encode_image_to_base64(image_path):
@@ -163,14 +144,12 @@ def query_huggingface(model_name, image_path, token):
     payload = {"inputs": base64_image}
 
     try:
-
         response = requests.post(api_url, headers=headers, json=payload, timeout=5)
-        #print(response.json())
 
-        response.raise_for_status()
-        # between 200–299 (successful responses), the method does nothing.
-        # 4xx (client error) or 5xx (server error), it raises an HTTPError with details of the failed request.
-        print(f" ✅ Success! Code de statut: {response.status_code}")
+        # Lève une exception si erreur
+
+        print(f" HTTP Status Exception : {response.raise_for_status()}")
+        print(f" HTTP Status Code: {response.status_code}")
         return response.json()
 
     except requests.exceptions.HTTPError as http_err:
@@ -200,24 +179,32 @@ def segment_images_batch(list_of_image_paths):
                            colour="green"):
         try:
             image_path_full = image_dir + image_path
-            print(f"Traitement: {image_path}")
 
             # Image Dimensions
             image_dimensions = get_image_dimensions(image_path_full)
-            print(f"Dimensions: {image_dimensions}")
+            #print(f"Dimensions: {image_dimensions}")
 
             # Content Type
             content_type = detect_content_type(image_path_full)
-            print(f"Content Type: {content_type}")
+            #print(f"Content Type: {content_type}")
 
             if content_type == "image/png" and image_dimensions == (400, 600):
 
+                print(f"Traitement: {image_path}")
                 # API request
                 # mattmdjaga/segformer_b2_clothes
                 # sayeed99/segformer_b3_clothes
                 result = query_huggingface("sayeed99/segformer_b3_clothes", image_path_full, api_token)
+
+                with open('result.txt', 'a') as f:
+                    f.write(str(result))
+
                 # Create Mask
                 combined_mask = create_masks(result, image_dimensions[0], image_dimensions[1])
+
+                with open('combined_mask.txt', 'a') as f:
+                    f.write(str(combined_mask))
+
                 # Append List
                 batch_segmentations.append(combined_mask)
             else:
@@ -239,10 +226,9 @@ def display_segmented_images_batch(list_of_image_paths, segmentation_masks):
         list_of_image_paths (list): Liste des chemins des images originales.
         segmentation_masks (list): Liste des masques segmentés (NumPy arrays).
     """
-
     for image_path, segmentation_mask in zip(list_of_image_paths, segmentation_masks):
-        # print(image_path)
-        # print(segmentation_mask)
+        print(image_path)
+        print(segmentation_mask)
         image_open = Image.open(image_dir + image_path)
 
         # Premier sous-graphique
@@ -256,16 +242,15 @@ def display_segmented_images_batch(list_of_image_paths, segmentation_masks):
         plt.imshow(segmentation_mask, cmap='tab10', interpolation='nearest')
         plt.title('Masque de segmentation')
         plt.axis('off')
-
         plt.tight_layout()
-        plt.show()
+        #plt.show()
 
         # Si le masque possède 3 canaux, le convertir en niveaux de gris
-        # if segmentation_mask.ndim == 3:
+        #if segmentation_mask.ndim == 3:
         #    segmentation_mask = cv2.cvtColor(segmentation_mask, cv2.COLOR_BGR2GRAY)
-        # id = (image_path.split("_")[1]).split(".")[0]
+        numero = (image_path.split("_")[1]).split(".")[0]
         # Sauvegarde du masque dans les dossiers appropriés
-        # cv2.imwrite(os.path.join("MaskFromScript", f"mask_{id}.png"), segmentation_mask)
+        cv2.imwrite(os.path.join("MaskPrediction", f"mask_{numero}.png"), segmentation_mask)
 
 
 # %%
@@ -277,6 +262,12 @@ if list_of_image_paths:
 else:
     batch_seg_results = []
     print("Aucune image à traiter en batch.")
+
+with open('list_of_image_paths.txt', 'w') as f:
+    f.write(str(list_of_image_paths))
+
+with open('batch_seg_results.txt', 'w') as f:
+    f.write(str(batch_seg_results))
 
 # Appeler la fonction pour afficher les images originales et leurs segmentations
 if batch_seg_results:

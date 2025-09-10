@@ -2,8 +2,8 @@ import os
 import numpy as np
 import cv2
 
-images = "IMG/"
-masks = "Mask/"
+mask_true = "Mask/"
+mask_pred = "MaskPrediction/"
 backup_folder_concatenated = "IMGConcat/"
 backup_folder_overlay = "IMGOverlay/"
 
@@ -52,15 +52,15 @@ legend_labels = {
 }
 
 # Lecture des paires image/mask depuis les dossiers
-image_files = sorted(os.listdir(images))
-mask_files = sorted(os.listdir(masks))
-# image_files = sorted([str(x) for x in os.listdir(images)])
-# mask_files = sorted([str(x) for x in os.listdir(masks)])
+image_files = sorted(os.listdir(mask_true))
+mask_files = sorted(os.listdir(mask_pred))
+# image_files = sorted([str(x) for x in os.listdir(mask_true)])
+# mask_files = sorted([str(x) for x in os.listdir(mask_pred)])
 
 paires = []
 for img_file, mask_file in zip(image_files, mask_files):
-    img_path = os.path.join(images, img_file)
-    mask_path = os.path.join(masks, mask_file)
+    img_path = os.path.join(mask_true, img_file)
+    mask_path = os.path.join(mask_pred, mask_file)
 
     image = cv2.imread(img_path)  # Image en couleur
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)  # Masque en niveaux de gris
