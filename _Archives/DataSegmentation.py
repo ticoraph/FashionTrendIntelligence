@@ -18,7 +18,7 @@ import cv2
 # %%
 load_dotenv()
 api_token = os.getenv('FASHION_TREND_INTELLIGENCE_TOKEN_READ')
-image_dir = "IMG/"
+image_dir = "../IMG/"
 list_of_image_paths = os.listdir(image_dir)
 
 
@@ -250,7 +250,7 @@ def display_segmented_images_batch(list_of_image_paths, segmentation_masks):
         #    segmentation_mask = cv2.cvtColor(segmentation_mask, cv2.COLOR_BGR2GRAY)
         numero = (image_path.split("_")[1]).split(".")[0]
         # Sauvegarde du masque dans les dossiers appropriés
-        cv2.imwrite(os.path.join("MaskPrediction", f"mask_{numero}.png"), segmentation_mask)
+        cv2.imwrite(os.path.join("../MaskPrediction", f"mask_{numero}.png"), segmentation_mask)
 
 
 # %%

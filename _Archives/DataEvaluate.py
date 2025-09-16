@@ -6,7 +6,7 @@ from PIL import Image
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-true_path = "Mask/"
+true_path = "../Mask/"
 pred_path = "Segm/"
 
 # ------------------------
