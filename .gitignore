@@ -209,3 +209,12 @@ __marimo__/
 # FashionTrendIntelligence
 .env
 Archives
+/_Archives/
+/_Exercices/
+/_Livrables/
+/IMG/
+/IMGConcat/
+/IMGNoCompliant/
+/Mask/
+/MaskNoCompliant/
+/MaskPrediction/
